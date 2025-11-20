@@ -29,6 +29,27 @@ class Category with DropDownType, EquatableMixin {
       deserializeIcon(<String, Object?>{"key": iconName, "pack": iconPack})
           ?.data;
 
+  Color? getIconColor() {
+    if (iconColor == null) {
+      return null;
+    }
+    String colorString = iconColor!;
+    if (colorString.startsWith('#')) {
+      colorString = colorString.substring(1);
+    }
+    if (colorString.length == 6) {
+      colorString = "ff$colorString";
+    }
+    if (colorString.length == 8) {
+      try {
+        return Color(int.parse("0x$colorString"));
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
     return <String, Object?>{
       "id": id,
@@ -38,4 +59,21 @@ class Category with DropDownType, EquatableMixin {
 
   @override
   List<Object?> get props => <Object?>[id, name];
+}
+
+class CategoryWithUsage extends Category {
+  final int transactionCount;
+
+  const CategoryWithUsage({
+    required super.name,
+    required super.id,
+    required this.transactionCount,
+    super.iconName,
+    super.iconPack,
+    super.iconColor,
+  });
+
+  CategoryWithUsage.fromJson(Map<String, Object?> json)
+      : transactionCount = json["transaction_count"] as int,
+        super.fromJson(json);
 }

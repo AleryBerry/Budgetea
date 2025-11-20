@@ -11,6 +11,7 @@ import "package:my_app/l10n/app_localizations.dart";
 import "package:my_app/models/account.dart";
 import "package:my_app/models/constants.dart";
 import "package:my_app/models/currency.dart";
+import "package:my_app/models/category.dart";
 import "package:my_app/screens/accounts/account_creation.dart";
 import "package:my_app/screens/accounts/accounts.dart";
 import "package:my_app/screens/overview/overview.dart";
@@ -182,7 +183,45 @@ class HomeState extends State<Home> {
                 ),
                 ListTile(
                   title: Text(AppLocalizations.of(context)!.category_list),
-                  onTap: () {},
+                  onTap: () async {
+                    final List<CategoryWithUsage> categories =
+                        await BudgeteaDatabase().getCategoriesWithUsageCount();
+                    if (!context.mounted) return;
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return SimpleDialog(
+                          title: Text(
+                              AppLocalizations.of(context)!.category_list),
+                          children: [
+                            SizedBox(
+                              height: 300,
+                              width: 300,
+                              child: ListView.builder(
+                                itemCount: categories.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  final CategoryWithUsage category =
+                                      categories[index];
+                                  final IconData? iconData =
+                                      category.getIconData();
+                                  final Color? iconColor =
+                                      category.getIconColor();
+                                  return ListTile(
+                                    leading: iconData != null
+                                        ? Icon(iconData, color: iconColor)
+                                        : null,
+                                    title: Text(category.name),
+                                    trailing: Text(
+                                        category.transactionCount.toString()),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),

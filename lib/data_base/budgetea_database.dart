@@ -5,6 +5,7 @@ import "package:flutter/cupertino.dart";
 import "package:flutter/services.dart";
 import "package:path/path.dart";
 import "package:sqflite_common_ffi/sqflite_ffi.dart";
+import "package:my_app/models/category.dart";
 import "package:path_provider/path_provider.dart";
 
 class BudgeteaDatabase {
@@ -71,5 +72,30 @@ class BudgeteaDatabase {
       where: "id=?",
       whereArgs: <Object?>[item.id],
     );
+  }
+
+  Future<List<CategoryWithUsage>> getCategoriesWithUsageCount() async {
+    final Database? db = database;
+    const String query = """
+      SELECT
+        cfc.id,
+        cfc.name,
+        cfc.icon_name,
+        cfc.icon_color,
+        cfc.icon_pack,
+        COUNT(cf.id) as transaction_count
+      FROM
+        cash_flow_category cfc
+      LEFT JOIN
+        cash_flow cf ON cfc.id = cf.category
+      GROUP BY
+        cfc.id
+      ORDER BY
+        cfc.name
+    """;
+    final List<Map<String, Object?>> result = await db!.rawQuery(query);
+    return result
+        .map((Map<String, Object?> json) => CategoryWithUsage.fromJson(json))
+        .toList();
   }
 }
