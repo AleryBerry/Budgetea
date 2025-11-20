@@ -10,8 +10,10 @@ import "package:shared_preferences/shared_preferences.dart";
 import "package:sqflite/sqflite.dart";
 
 Future<(Currency, double, double, double)> getWinsAndLosses(
-    {BuildContext? context, DateTimeRange? range}) async {
+    {BuildContext? context, DateTimeRange? range, int? accountId}) async {
   final Database db = BudgeteaDatabase.database!;
+  final int? accId =
+      accountId ?? (await SharedPreferences.getInstance()).getInt("main_account");
   late final String request;
   if (range != null) {
     request = """select coalesce(sum(amount), 0) as total, 
@@ -20,7 +22,7 @@ coalesce(sum(case when amount < 0.0 then amount else 0.0 end), 0) as expenditure
 account,
 currency
 from cash_flow
-where ((account = ${(await SharedPreferences.getInstance()).getInt("main_account")}) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = ${(await SharedPreferences.getInstance()).getInt("main_account")}))) AND (date < '${range.end}' AND date > '${range.start}')
+where ((account = $accId) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = $accId))) AND (date < '${range.end}' AND date > '${range.start}')
 group by currency""";
   } else {
     request = """select coalesce(sum(amount), 0) as total, 
@@ -29,7 +31,7 @@ coalesce(sum(case when amount < 0.0 then amount else 0.0 end), 0) as expenditure
 account,
 currency
 from cash_flow
-where (account = ${(await SharedPreferences.getInstance()).getInt("main_account")}) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = ${(await SharedPreferences.getInstance()).getInt("main_account")}))
+where (account = $accId) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = $accId))
 group by currency""";
   }
 
@@ -82,14 +84,17 @@ group by currency""";
 }
 
 class Balance extends StatelessWidget {
-  Balance({super.key});
+  Balance({super.key, this.accountId});
+  final int? accountId;
+
   final DataRequest<(Currency, double, double, double)> snapshot =
       DataRequest<(Currency, double, double, double)>(
           (const Currency(), 0, 0, 0));
 
   void fetchData({BuildContext? context, DateTimeRange? range}) async {
     snapshot.fetched = true;
-    snapshot.replace(await getWinsAndLosses(context: context, range: range));
+    snapshot.replace(await getWinsAndLosses(
+        context: context, range: range, accountId: accountId));
   }
 
   @override

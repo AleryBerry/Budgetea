@@ -8,6 +8,7 @@ import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/extension_methods/double.dart";
 import "package:my_app/extension_methods/iterable.dart";
 import "package:my_app/home/budget_card.dart";
+import "package:my_app/home/balance.dart";
 import "package:my_app/l10n/app_localizations.dart";
 import "package:my_app/main.dart";
 import "package:my_app/models/account.dart";
@@ -29,45 +30,47 @@ class AccountDetails extends StatelessWidget {
       appBar: AppBar(
         title: Text("Account Details (${account.name})"),
         elevation: 0,
+        actions: <Widget>[
+          IconButton(
+              onPressed: () async {
+                final bool result = await Navigator.push<bool>(
+                      context,
+                      PageRouteBuilder<bool>(
+                        transitionsBuilder: (BuildContext context,
+                            Animation<double> animation,
+                            Animation<double> secondaryAnimation,
+                            Widget child) {
+                          const Offset begin = Offset(0.0, 1.0);
+                          const Offset end = Offset.zero;
+                          const Cubic curve = Curves.ease;
+
+                          Animatable<Offset> tween =
+                              Tween<Offset>(begin: begin, end: end)
+                                  .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                              position: animation.drive(tween), child: child);
+                        },
+                        pageBuilder: (BuildContext context, Animation<double> _,
+                                Animation<double> __) =>
+                            LastActivity(
+                          account: account,
+                        ),
+                      ),
+                    ) ??
+                    false;
+              },
+              icon: const Icon(Icons.history))
+        ],
       ),
-      body: ListView(
+      body: Column(
         children: <Widget>[
-          CurrencyTotals(account: account),
-          const Divider(),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(AppLocalizations.of(context)!.last_activities),
-              FutureBuilder<List<CashFlow>>(
-                future: (() async {
-                  final List<Account> descendants =
-                      await account.getAllDescendants();
-                  final List<int> accountIds = <int>[
-                    account.id,
-                    ...descendants.map((Account e) => e.id)
-                  ];
-                  return (await BudgeteaDatabase.database!.query("cash_flow",
-                          where: "account IN (${accountIds.join(', ')})",
-                          limit: 5,
-                          orderBy: "datetime(date) desc"))
-                      .map(CashFlow.fromJson)
-                      .toList();
-                })(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<List<CashFlow>> snapshot) {
-                  return Column(
-                    children: snapshot.data
-                            ?.map((CashFlow e) => CashFlowCard(e))
-                            .toList() ??
-                        <Widget>[],
-                  );
-                },
-              ),
-            ],
+          Balance(accountId: account.id),
+          Expanded(
+            child: CurrencyTotals(account: account),
           ),
           const Divider(),
-          SizedBox(
-            height: 200,
+          Expanded(
             child: FutureBuilder<TreeNode<Account>>(
               future: (() async => TreeNode<Account>.root()
                 ..addAll(
@@ -119,6 +122,66 @@ class AccountDetails extends StatelessWidget {
   }
 }
 
+class LastActivity extends StatelessWidget {
+  const LastActivity({
+    super.key,
+    required this.account,
+  });
+
+  final Account account;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: LastActivityBody(account: account),
+    );
+  }
+}
+
+class LastActivityBody extends StatelessWidget {
+  const LastActivityBody({
+    super.key,
+    required this.account,
+  });
+
+  final Account account;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      children: <Widget>[
+        Text(AppLocalizations.of(context)!.last_activities),
+        FutureBuilder<List<CashFlow>>(
+          future: (() async {
+            final List<Account> descendants = await account.getAllDescendants();
+            final List<int> accountIds = <int>[
+              account.id,
+              ...descendants.map((Account e) => e.id)
+            ];
+            return (await BudgeteaDatabase.database!.query("cash_flow",
+                    where: "account IN (${accountIds.join(', ')})",
+                    limit: 5,
+                    orderBy: "datetime(date) desc"))
+                .map(CashFlow.fromJson)
+                .toList();
+          })(),
+          builder:
+              (BuildContext context, AsyncSnapshot<List<CashFlow>> snapshot) {
+            return Column(
+              children: snapshot.data
+                      ?.map((CashFlow e) => CashFlowCard(e))
+                      .toList() ??
+                  <Widget>[],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
 class AccountsList extends StatelessWidget {
   AccountsList({super.key});
   final DataRequest<TreeNode<Account>> snapshot =
@@ -128,17 +191,19 @@ class AccountsList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!snapshot.fetched) fetchData();
     return Padding(
-      padding: const EdgeInsets.only(top: kToolbarHeight),
+      padding: EdgeInsets.zero,
       child: Column(
         children: <Widget>[
-          const CurrencyTotals(),
+          const SizedBox(
+            height: 300,
+            child: CurrencyTotals(),
+          ),
           const Divider(),
           Expanded(
             child: AccountsTree(
               snapshot: snapshot,
               widget: (TreeNode<Account> item,
-                      TreeViewController<Account, TreeNode<Account>>?
-                          myTree) =>
+                      TreeViewController<Account, TreeNode<Account>>? myTree) =>
                   AccountTile(
                 account: item.data!,
                 onTap: () async {
@@ -200,21 +265,17 @@ class AccountsList extends StatelessWidget {
                               if (await Navigator.push<bool>(
                                     context,
                                     PageRouteBuilder<bool>(
-                                      transitionsBuilder:
-                                          (BuildContext context,
-                                              Animation<double> animation,
-                                              Animation<double>
-                                                  secondaryAnimation,
-                                              Widget child) {
+                                      transitionsBuilder: (BuildContext context,
+                                          Animation<double> animation,
+                                          Animation<double> secondaryAnimation,
+                                          Widget child) {
                                         const Offset begin = Offset(0.0, 1.0);
                                         const Offset end = Offset.zero;
                                         const Cubic curve = Curves.ease;
 
                                         Animatable<Offset> tween = Tween<
-                                                Offset>(
-                                            begin: begin,
-                                            end: end).chain(CurveTween(
-                                            curve: curve));
+                                                Offset>(begin: begin, end: end)
+                                            .chain(CurveTween(curve: curve));
 
                                         return SlideTransition(
                                             position: animation.drive(tween),
@@ -253,10 +314,11 @@ class AccountsList extends StatelessWidget {
                                               .validate()) {
                                             (
                                               await BudgeteaDatabase.database!
-                                                  .update("account",
+                                                  .update(
+                                                      "account",
                                                       <String, Object?>{
-                                                    "name": val
-                                                  },
+                                                        "name": val
+                                                      },
                                                       where:
                                                           "id = ${item.data!.id}"),
                                             );
@@ -311,8 +373,7 @@ class AccountsList extends StatelessWidget {
                                             child: AccountsTree(
                                               snapshot: snapshot,
                                               widget: (TreeNode<Account> val,
-                                                  TreeViewController<
-                                                          Account,
+                                                  TreeViewController<Account,
                                                           TreeNode<Account>>?
                                                       tree) {
                                                 final bool isParent = val
@@ -324,14 +385,15 @@ class AccountsList extends StatelessWidget {
                                                       val.data! == item.data! ||
                                                           isParent,
                                                   account: val.data!,
-                                                  onTap: val.data! ==
-                                                              item.data! ||
-                                                          isParent
-                                                      ? null
-                                                      : () {
-                                                          Navigator.pop(context,
-                                                              val.data!);
-                                                        },
+                                                  onTap:
+                                                      val.data! == item.data! ||
+                                                              isParent
+                                                          ? null
+                                                          : () {
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  val.data!);
+                                                            },
                                                 );
                                               },
                                             ),
@@ -377,8 +439,7 @@ class AccountsList extends StatelessWidget {
                               }
                               fetchData();
                             },
-                            child:
-                                Text(AppLocalizations.of(context)!.reparent),
+                            child: Text(AppLocalizations.of(context)!.reparent),
                           ),
                           SimpleDialogOption(
                             onPressed: () async {
@@ -410,7 +471,8 @@ class AccountsList extends StatelessWidget {
                                 }
                               }
                               await batch.commit(continueOnError: true);
-                              if (!newContext.mounted || !context.mounted) return;
+                              if (!newContext.mounted || !context.mounted)
+                                return;
                               HomeState.of(context).fetchData();
                               Navigator.pop(newContext);
                             },
@@ -503,83 +565,79 @@ class CurrencyTotals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 200,
-      child: FutureBuilder<List<Map<String, Object?>>>(
-        future: _getCurrencyTotals(),
-        builder: (BuildContext context,
-            AsyncSnapshot<List<Map<String, Object?>>> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No data"));
-          }
+    return FutureBuilder<List<Map<String, Object?>>>(
+      future: _getCurrencyTotals(),
+      builder: (BuildContext context,
+          AsyncSnapshot<List<Map<String, Object?>>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text("Error: ${snapshot.error}"));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text("No data"));
+        }
 
-          final List<Map<String, Object?>> totals = snapshot.data!;
+        final List<Map<String, Object?>> totals = snapshot.data!;
 
-          return ListView(
-            children: <Widget>[
-              Text(
-                AppLocalizations.of(context)!.currency_totals,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
+        return ListView(
+          children: <Widget>[
+            Text(
+              AppLocalizations.of(context)!.currency_totals,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 6,
               ),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 3,
-                ),
-                itemCount: totals.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final Map<String, Object?> total = totals[index];
-                  final Currency currency = Currency(
-                    name: total["currency_name"] as String,
-                    logoUrl: total["logo_url"]?.toString() ?? "",
-                    type: (total["type"] as String) == "FIAT"
-                        ? CurrencyType.fiat
-                        : CurrencyType.crypto,
-                    symbol: total["symbol"]?.toString() ?? "",
-                    iso: total["iso"] as String,
-                  );
-                  final double amount = total["total"]?.toDouble() ?? 0.0;
+              itemCount: totals.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, Object?> total = totals[index];
+                final Currency currency = Currency(
+                  name: total["currency_name"] as String,
+                  logoUrl: total["logo_url"]?.toString() ?? "",
+                  type: (total["type"] as String) == "FIAT"
+                      ? CurrencyType.fiat
+                      : CurrencyType.crypto,
+                  symbol: total["symbol"]?.toString() ?? "",
+                  iso: total["iso"] as String,
+                );
+                final double amount = total["total"]?.toDouble() ?? 0.0;
 
-                  return Card(
-                    child: ListTile(
-                      leading: currency.type == CurrencyType.crypto
-                          ? CachedNetworkImage(
-                              imageUrl: currency.logoUrl,
-                              width: 40,
-                              height: 40,
-                            )
-                          : Text(
-                              currency.getEmoji(),
-                              style: const TextStyle(fontSize: 24),
-                            ),
-                      title: Text(currency.name),
-                      subtitle: Text(
-                        NumberFormat.compactSimpleCurrency(
-                          decimalDigits: 2,
-                          name: currency.iso,
-                        ).format(amount),
-                      ),
+                return Card(
+                  child: ListTile(
+                    leading: currency.type == CurrencyType.crypto
+                        ? CachedNetworkImage(
+                            imageUrl: currency.logoUrl,
+                            width: 40,
+                            height: 40,
+                          )
+                        : Text(
+                            currency.getEmoji(),
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                    title: Text(currency.name),
+                    subtitle: Text(
+                      NumberFormat.compactSimpleCurrency(
+                        decimalDigits: 2,
+                        name: currency.iso,
+                      ).format(amount),
                     ),
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
-
 
 class AccountsTree extends StatelessWidget {
   const AccountsTree({
