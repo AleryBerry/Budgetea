@@ -56,4 +56,7 @@ class Currency with DropDownType, EquatableMixin {
 
   @override
   List<Object?> get props => <Object?>[id];
+
+  @override
+  String? get fullName => "$name ($iso)";
 }

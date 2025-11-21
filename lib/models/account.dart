@@ -122,4 +122,7 @@ WHERE tot.id = $id
 
   @override
   List<Object?> get props => <Object?>[id, name];
+
+  @override
+  String? get fullName => null;
 }

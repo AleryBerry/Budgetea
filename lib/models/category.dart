@@ -59,6 +59,9 @@ class Category with DropDownType, EquatableMixin {
 
   @override
   List<Object?> get props => <Object?>[id, name];
+
+  @override
+  String? get fullName => null;
 }
 
 class CategoryWithUsage extends Category {

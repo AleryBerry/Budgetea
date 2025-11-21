@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:math";
 import "package:animated_tree_view/animated_tree_view.dart";
 import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
@@ -66,9 +67,7 @@ class AccountDetails extends StatelessWidget {
       body: Column(
         children: <Widget>[
           Balance(accountId: account.id),
-          Expanded(
-            child: CurrencyTotals(account: account),
-          ),
+          CurrencyTotals(account: account),
           const Divider(),
           Expanded(
             child: FutureBuilder<TreeNode<Account>>(
@@ -194,10 +193,7 @@ class AccountsList extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: <Widget>[
-          const SizedBox(
-            height: 300,
-            child: CurrencyTotals(),
-          ),
+          const CurrencyTotals(),
           const Divider(),
           Expanded(
             child: AccountsTree(
@@ -563,6 +559,47 @@ class CurrencyTotals extends StatelessWidget {
     """);
   }
 
+  Widget _buildCurrencyItem(BuildContext context, Map<String, Object?> total) {
+    final Currency currency = Currency(
+      name: total["currency_name"] as String,
+      logoUrl: total["logo_url"]?.toString() ?? "",
+      type: (total["type"] as String) == "FIAT"
+          ? CurrencyType.fiat
+          : CurrencyType.crypto,
+      symbol: total["symbol"]?.toString() ?? "",
+      iso: total["iso"] as String,
+    );
+    final double amount = total["total"]?.toDouble() ?? 0.0;
+
+    return Card(
+      child: ListTile(
+        leading: currency.type == CurrencyType.crypto
+            ? CachedNetworkImage(
+                imageUrl: currency.logoUrl,
+                width: 40,
+                height: 40,
+              )
+            : Text(
+                currency.getEmoji(),
+                style: const TextStyle(fontSize: 24),
+              ),
+        title: Text(
+          currency.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          NumberFormat.compactSimpleCurrency(
+            decimalDigits: 2,
+            name: currency.iso,
+          ).format(amount),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, Object?>>>(
@@ -580,59 +617,35 @@ class CurrencyTotals extends StatelessWidget {
         }
 
         final List<Map<String, Object?>> totals = snapshot.data!;
+        final double screenWidth = MediaQuery.of(context).size.width;
+        const double itemHeight = 75.0;
+        const double crossAxisSpacing = 8.0;
+        const double mainAxisSpacing = 8.0;
+        final double itemWidth = (screenWidth - (crossAxisSpacing * 3)) / 2;
+        final double aspectRatio = itemWidth / itemHeight;
 
-        return ListView(
-          children: <Widget>[
-            Text(
-              AppLocalizations.of(context)!.currency_totals,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 6,
-              ),
-              itemCount: totals.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, Object?> total = totals[index];
-                final Currency currency = Currency(
-                  name: total["currency_name"] as String,
-                  logoUrl: total["logo_url"]?.toString() ?? "",
-                  type: (total["type"] as String) == "FIAT"
-                      ? CurrencyType.fiat
-                      : CurrencyType.crypto,
-                  symbol: total["symbol"]?.toString() ?? "",
-                  iso: total["iso"] as String,
-                );
-                final double amount = total["total"]?.toDouble() ?? 0.0;
+        final int numberOfRows = (totals.length / 2).ceil();
+        double getHeight(double count){return  (count * itemHeight) +
+            ((count - 1) * mainAxisSpacing) +
+            (crossAxisSpacing * 2);}
+                      
+        final double gridViewHeight = getHeight(numberOfRows.toDouble()); 
 
-                return Card(
-                  child: ListTile(
-                    leading: currency.type == CurrencyType.crypto
-                        ? CachedNetworkImage(
-                            imageUrl: currency.logoUrl,
-                            width: 40,
-                            height: 40,
-                          )
-                        : Text(
-                            currency.getEmoji(),
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                    title: Text(currency.name),
-                    subtitle: Text(
-                      NumberFormat.compactSimpleCurrency(
-                        decimalDigits: 2,
-                        name: currency.iso,
-                      ).format(amount),
-                    ),
-                  ),
-                );
-              },
+        return SizedBox(
+          height: min(getHeight(2.5), gridViewHeight),
+          child: GridView.builder(
+            padding: const EdgeInsets.all(crossAxisSpacing),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: aspectRatio,
+              crossAxisSpacing: crossAxisSpacing,
+              mainAxisSpacing: mainAxisSpacing,
             ),
-          ],
+            itemCount: totals.length,
+            itemBuilder: (BuildContext context, int index) {
+              return _buildCurrencyItem(context, totals[index]);
+            },
+          ),
         );
       },
     );

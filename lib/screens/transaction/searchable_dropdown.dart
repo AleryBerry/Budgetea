@@ -52,7 +52,7 @@ class _SearchableDropDownState<T extends DropDownType>
         listenable.value = (result.firstOrNull, result);
         if (listenable.value.$1 != null) {
           widget.onSelected(listenable.value.$1);
-          _textController.text = listenable.value.$1!.name;
+          _textController.text = listenable.value.$1!.fullName ?? listenable.value.$1!.name;
         } else {
           widget.onSelected(null);
         }
@@ -106,7 +106,7 @@ class _SearchableDropDownState<T extends DropDownType>
                 valueListenable: listenable,
                 builder: (BuildContext context, (T?, List<T>) value, _) {
                   final List<T> filteredList = value.$2
-                      .where((T element) => element.name
+                      .where((T element) => (element.fullName ?? element.name)
                           .toLowerCase()
                           .contains(_textController.text.toLowerCase()))
                       .toList();
@@ -123,12 +123,12 @@ class _SearchableDropDownState<T extends DropDownType>
                         final T element = filteredList[index];
                         return ListTile(
                           title: widget.child == null
-                              ? Text(element.name)
+                              ? Text(element.fullName ?? element.name)
                               : widget.child!(element),
                           onTap: () {
                             listenable.value = (element, listenable.value.$2);
                             widget.onSelected(element);
-                            _textController.text = element.name;
+                            _textController.text = element.fullName ?? element.name;
                             _focusNode.unfocus();
                           },
                         );

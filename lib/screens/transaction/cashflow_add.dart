@@ -305,8 +305,8 @@ class CashFlowForm extends StatelessWidget {
               ),
               ValueListenableBuilder<Currency?>(
                   valueListenable: currency,
-                  builder:
-                      (BuildContext context, Currency? currencyValue, Widget? _) {
+                  builder: (BuildContext context, Currency? currencyValue,
+                      Widget? _) {
                     return Row(
                       children: <Widget>[
                         Expanded(
@@ -325,18 +325,19 @@ class CashFlowForm extends StatelessWidget {
                               }
                               return null;
                             },
-                            child: (Currency element) => Row(
-                              children: <StatelessWidget?>[
-                                element.logoUrl.isEmpty
-                                    ? null
-                                    : CachedNetworkImage(
-                                        imageUrl: element.logoUrl,
-                                        width: 22,
-                                        height: 22,
-                                      ),
-                                Text(
-                                    "${element.type == CurrencyType.crypto ? "" : element.getEmoji()} ${element.name} (${element.iso})"),
-                              ].nonNulls.toList(),
+                            child: (Currency element) => ListTile(
+                              leading: element.logoUrl.isEmpty
+                                  ? null
+                                  : CachedNetworkImage(
+                                      imageUrl: element.logoUrl,
+                                      width: 22,
+                                      height: 22,
+                                    ),
+                              title: Text(
+                                "${element.type == CurrencyType.crypto ? "" : element.getEmoji()} ${element.name} (${element.iso})",
+                                maxLines: 3,
+                                softWrap: true,
+                              ),
                             ),
                           ),
                         ),
