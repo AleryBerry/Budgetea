@@ -69,6 +69,7 @@ void main() async {
             Locale("en"),
             Locale("es"),
             Locale("pl"),
+            Locale("ru"),
           ],
           theme: theme,
           darkTheme: darkTheme,
