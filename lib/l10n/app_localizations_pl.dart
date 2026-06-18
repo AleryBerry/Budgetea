@@ -15,19 +15,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get accounts => 'Konta';
 
   @override
-  String get deposit => 'Depozyt';
+  String get deposit => 'Wpłacić';
 
   @override
-  String get withdrawal => 'Wycofanie';
+  String get withdrawal => 'Wypłacić';
 
   @override
-  String get transfer => 'Transfer';
+  String get transfer => 'Przenieść';
 
   @override
-  String get create_account => 'Utwórz Konto';
+  String get create_account => 'Utwórz konto';
 
   @override
-  String get can_receive_cash_flows => 'Może otrzywać przepływy pieniężne';
+  String get can_receive_cash_flows => 'Może otrzymywać przepływy pieniężne';
 
   @override
   String get select_parent => 'Wybierz rodzica';
@@ -36,7 +36,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get no_parent_selected => 'Nie wybrano żadnego rodzica';
 
   @override
-  String get no_parent => 'Żadnego rodzica';
+  String get no_parent => 'Bez rodzica';
 
   @override
   String get currencies => 'Waluty';
@@ -49,7 +49,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get account_doesnt_own_currency =>
-      'Konto Origin nie posiada tak dużej ilości tej waluty!';
+      'Konto źródłowe nie posiada wystarczająco tej waluty!';
 
   @override
   String get currency => 'Waluta';
@@ -70,7 +70,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get description => 'Opis';
 
   @override
-  String get select_account => 'Wybierz Konto';
+  String get select_account => 'Wybierz konto';
 
   @override
   String get no_account_selected => 'Nie wybrano konta';
@@ -92,10 +92,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get children => 'Dzieci';
 
   @override
-  String get reparent => 'Reparentny';
+  String get reparent => 'Zmień rodzica';
 
   @override
-  String get rename => 'zmiana nazwy';
+  String get rename => 'Zmień nazwę';
 
   @override
   String get category => 'Kategoria';
@@ -110,23 +110,23 @@ class AppLocalizationsPl extends AppLocalizations {
   String get transfer_options => 'Opcje transferu';
 
   @override
-  String get add_cash_flow => 'Dodaj przepływy pieniężne';
+  String get add_cash_flow => 'Dodaj przepływ pieniężny';
 
   @override
   String get cash_flow_delete_sure =>
-      'Czy na pewno chcesz usunąć ten przepływ gotówki?';
+      'Czy na pewno chcesz usunąć ten przepływ pieniężny?';
 
   @override
-  String get cash_flow_options => 'Opcje przepływów pieniężnych';
+  String get cash_flow_options => 'Opcje przepływu pieniężnego';
 
   @override
-  String get view_details => 'zobacz szczegóły';
+  String get view_details => 'Zobacz szczegóły';
 
   @override
   String get empty_number => 'Pusta liczba';
 
   @override
-  String get accept => 'Przyjąć';
+  String get accept => 'Akceptuj';
 
   @override
   String get statistics => 'Statystyka';
@@ -135,7 +135,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get category_list => 'Lista kategorii';
 
   @override
-  String get last_activities => 'Ostatnie zajęcia';
+  String get last_activities => 'Ostatnie aktywności';
 
   @override
   String get delete => 'Usuń';

@@ -15,28 +15,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get accounts => 'Счета';
 
   @override
-  String get deposit => 'Депозит';
+  String get deposit => 'Пополнить';
 
   @override
   String get withdrawal => 'Вывести';
 
   @override
-  String get transfer => 'Передача';
+  String get transfer => 'Перевести';
 
   @override
-  String get create_account => 'Создать аккаунт';
+  String get create_account => 'Создать счёт';
 
   @override
-  String get can_receive_cash_flows => 'может получать денежные потоки';
+  String get can_receive_cash_flows => 'Может получать денежные потоки';
 
   @override
   String get select_parent => 'Выберите родителя';
 
   @override
-  String get no_parent_selected => 'Родители не выбраны';
+  String get no_parent_selected => 'Родитель не выбран';
 
   @override
-  String get no_parent => 'Нет родителей';
+  String get no_parent => 'Без родителя';
 
   @override
   String get currencies => 'Валюты';
@@ -49,13 +49,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get account_doesnt_own_currency =>
-      'Аккаунт Origin не владеет такой большой из этой валюты!';
+      'Исходный счет не имеет достаточно этой валюты!';
 
   @override
   String get currency => 'Валюта';
 
   @override
-  String get origin_account => 'Учетная запись происхождения';
+  String get origin_account => 'Счет происхождения';
 
   @override
   String get target_account => 'Целевой счет';
@@ -64,7 +64,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get set_main_currency => 'Установите основную валюту';
 
   @override
-  String get name => 'Имя';
+  String get name => 'Название';
 
   @override
   String get description => 'Описание';
@@ -79,22 +79,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get set_main_account => 'Установите основной счет';
 
   @override
-  String get set_as_main_account =>
-      'Установите в качестве основной учетной записи';
+  String get set_as_main_account => 'Установить как основной счет';
 
   @override
-  String get account_delete_sure =>
-      'Вы уверены, что хотите удалить эту учетную запись?';
+  String get account_delete_sure => 'Вы уверены, что хотите удалить этот счет?';
 
   @override
   String get account_delete_has_children =>
-      'У аккаунта есть дети, хотите ли вы, чтобы они тоже были удалены?';
+      'У счета есть дети, хотите ли вы удалить их тоже?';
 
   @override
   String get children => 'дети';
 
   @override
-  String get reparent => 'Репарант';
+  String get reparent => 'Сменить родителя';
 
   @override
   String get rename => 'переименовать';
@@ -103,14 +101,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get category => 'Категория';
 
   @override
-  String get add_transfer => 'Добавить трансфер';
+  String get add_transfer => 'Добавить перевод';
 
   @override
   String get transfer_delete_sure =>
-      'Вы уверены, что хотите удалить эту передачу?';
+      'Вы уверены, что хотите удалить этот перевод?';
 
   @override
-  String get transfer_options => 'Варианты передачи';
+  String get transfer_options => 'Параметры перевода';
 
   @override
   String get add_cash_flow => 'Добавить денежный поток';
@@ -120,13 +118,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вы уверены, что хотите удалить этот денежный поток?';
 
   @override
-  String get cash_flow_options => 'Варианты денежных потоков';
+  String get cash_flow_options => 'Параметры денежного потока';
 
   @override
   String get view_details => 'просмотреть детали';
 
   @override
-  String get empty_number => 'Пустой номер';
+  String get empty_number => 'Пустое поле номера';
 
   @override
   String get accept => 'Принимать';
@@ -138,7 +136,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get category_list => 'Список категорий';
 
   @override
-  String get last_activities => 'Последнее занятие';
+  String get last_activities => 'Последние действия';
 
   @override
   String get delete => 'Удалить';

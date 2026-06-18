@@ -135,19 +135,19 @@ abstract class AppLocalizations {
   /// No description provided for @create_account.
   ///
   /// In en, this message translates to:
-  /// **'Create Account'**
+  /// **'Create account'**
   String get create_account;
 
   /// No description provided for @can_receive_cash_flows.
   ///
   /// In en, this message translates to:
-  /// **'Can Receive Cash Flows'**
+  /// **'Can receive cash flows'**
   String get can_receive_cash_flows;
 
   /// No description provided for @select_parent.
   ///
   /// In en, this message translates to:
-  /// **'Select Parent'**
+  /// **'Select parent'**
   String get select_parent;
 
   /// No description provided for @no_parent_selected.
@@ -171,13 +171,13 @@ abstract class AppLocalizations {
   /// No description provided for @select_a_currency.
   ///
   /// In en, this message translates to:
-  /// **'Select a Currency'**
+  /// **'Select a currency'**
   String get select_a_currency;
 
   /// No description provided for @select_a_category.
   ///
   /// In en, this message translates to:
-  /// **'Select a Category'**
+  /// **'Select a category'**
   String get select_a_category;
 
   /// No description provided for @account_doesnt_own_currency.
@@ -195,19 +195,19 @@ abstract class AppLocalizations {
   /// No description provided for @origin_account.
   ///
   /// In en, this message translates to:
-  /// **'Origin Account'**
+  /// **'Origin account'**
   String get origin_account;
 
   /// No description provided for @target_account.
   ///
   /// In en, this message translates to:
-  /// **'Target Account'**
+  /// **'Target account'**
   String get target_account;
 
   /// No description provided for @set_main_currency.
   ///
   /// In en, this message translates to:
-  /// **'Set Main Currency'**
+  /// **'Set main currency'**
   String get set_main_currency;
 
   /// No description provided for @name.
@@ -225,25 +225,25 @@ abstract class AppLocalizations {
   /// No description provided for @select_account.
   ///
   /// In en, this message translates to:
-  /// **'Select Account'**
+  /// **'Select account'**
   String get select_account;
 
   /// No description provided for @no_account_selected.
   ///
   /// In en, this message translates to:
-  /// **'No Account Selected'**
+  /// **'No account selected'**
   String get no_account_selected;
 
   /// No description provided for @set_main_account.
   ///
   /// In en, this message translates to:
-  /// **'Set Main Account'**
+  /// **'Set main account'**
   String get set_main_account;
 
   /// No description provided for @set_as_main_account.
   ///
   /// In en, this message translates to:
-  /// **'Set As Main Account'**
+  /// **'Set as main account'**
   String get set_as_main_account;
 
   /// No description provided for @account_delete_sure.
@@ -285,7 +285,7 @@ abstract class AppLocalizations {
   /// No description provided for @add_transfer.
   ///
   /// In en, this message translates to:
-  /// **'Add Transfer'**
+  /// **'Add transfer'**
   String get add_transfer;
 
   /// No description provided for @transfer_delete_sure.
@@ -297,13 +297,13 @@ abstract class AppLocalizations {
   /// No description provided for @transfer_options.
   ///
   /// In en, this message translates to:
-  /// **'Transfer Options'**
+  /// **'Transfer options'**
   String get transfer_options;
 
   /// No description provided for @add_cash_flow.
   ///
   /// In en, this message translates to:
-  /// **'Add Cash Flow'**
+  /// **'Add cash flow'**
   String get add_cash_flow;
 
   /// No description provided for @cash_flow_delete_sure.
@@ -315,19 +315,19 @@ abstract class AppLocalizations {
   /// No description provided for @cash_flow_options.
   ///
   /// In en, this message translates to:
-  /// **'Cash Flow Options'**
+  /// **'Cash flow options'**
   String get cash_flow_options;
 
   /// No description provided for @view_details.
   ///
   /// In en, this message translates to:
-  /// **'View Details'**
+  /// **'View details'**
   String get view_details;
 
   /// No description provided for @empty_number.
   ///
   /// In en, this message translates to:
-  /// **'Empty Number'**
+  /// **'Empty number'**
   String get empty_number;
 
   /// No description provided for @accept.
@@ -345,13 +345,13 @@ abstract class AppLocalizations {
   /// No description provided for @category_list.
   ///
   /// In en, this message translates to:
-  /// **'Category List'**
+  /// **'Category list'**
   String get category_list;
 
   /// No description provided for @last_activities.
   ///
   /// In en, this message translates to:
-  /// **'Last Activities'**
+  /// **'Last activities'**
   String get last_activities;
 
   /// No description provided for @delete.

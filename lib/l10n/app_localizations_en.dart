@@ -24,13 +24,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transfer => 'Transfer';
 
   @override
-  String get create_account => 'Create Account';
+  String get create_account => 'Create account';
 
   @override
-  String get can_receive_cash_flows => 'Can Receive Cash Flows';
+  String get can_receive_cash_flows => 'Can receive cash flows';
 
   @override
-  String get select_parent => 'Select Parent';
+  String get select_parent => 'Select parent';
 
   @override
   String get no_parent_selected => 'No parent selected';
@@ -42,10 +42,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencies => 'Currencies';
 
   @override
-  String get select_a_currency => 'Select a Currency';
+  String get select_a_currency => 'Select a currency';
 
   @override
-  String get select_a_category => 'Select a Category';
+  String get select_a_category => 'Select a category';
 
   @override
   String get account_doesnt_own_currency =>
@@ -55,13 +55,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currency => 'Currency';
 
   @override
-  String get origin_account => 'Origin Account';
+  String get origin_account => 'Origin account';
 
   @override
-  String get target_account => 'Target Account';
+  String get target_account => 'Target account';
 
   @override
-  String get set_main_currency => 'Set Main Currency';
+  String get set_main_currency => 'Set main currency';
 
   @override
   String get name => 'Name';
@@ -70,16 +70,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get description => 'Description';
 
   @override
-  String get select_account => 'Select Account';
+  String get select_account => 'Select account';
 
   @override
-  String get no_account_selected => 'No Account Selected';
+  String get no_account_selected => 'No account selected';
 
   @override
-  String get set_main_account => 'Set Main Account';
+  String get set_main_account => 'Set main account';
 
   @override
-  String get set_as_main_account => 'Set As Main Account';
+  String get set_as_main_account => 'Set as main account';
 
   @override
   String get account_delete_sure =>
@@ -102,30 +102,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get category => 'Category';
 
   @override
-  String get add_transfer => 'Add Transfer';
+  String get add_transfer => 'Add transfer';
 
   @override
   String get transfer_delete_sure =>
       'Are you sure you want to delete this transfer?';
 
   @override
-  String get transfer_options => 'Transfer Options';
+  String get transfer_options => 'Transfer options';
 
   @override
-  String get add_cash_flow => 'Add Cash Flow';
+  String get add_cash_flow => 'Add cash flow';
 
   @override
   String get cash_flow_delete_sure =>
       'Are you sure you want to delete this cash flow?';
 
   @override
-  String get cash_flow_options => 'Cash Flow Options';
+  String get cash_flow_options => 'Cash flow options';
 
   @override
-  String get view_details => 'View Details';
+  String get view_details => 'View details';
 
   @override
-  String get empty_number => 'Empty Number';
+  String get empty_number => 'Empty number';
 
   @override
   String get accept => 'Accept';
@@ -134,10 +134,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statistics => 'Statistics';
 
   @override
-  String get category_list => 'Category List';
+  String get category_list => 'Category list';
 
   @override
-  String get last_activities => 'Last Activities';
+  String get last_activities => 'Last activities';
 
   @override
   String get delete => 'Delete';
