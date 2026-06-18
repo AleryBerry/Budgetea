@@ -150,4 +150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get currency_totals => 'Totales de Moneda';
+
+  @override
+  String get show_all_accounts => 'Mostrar todas las cuentas';
 }

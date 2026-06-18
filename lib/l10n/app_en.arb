@@ -45,5 +45,7 @@
   "yes": "Yes",
   "no": "No",
   "currency_totals": "Currency totals"
+  "currency_totals": "Currency Totals",
+  "show_all_accounts": "Show All Accounts"
 }
 

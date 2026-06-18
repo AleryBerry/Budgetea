@@ -377,6 +377,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Currency Totals'**
   String get currency_totals;
+
+  /// No description provided for @show_all_accounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Show All Accounts'**
+  String get show_all_accounts;
 }
 
 class _AppLocalizationsDelegate

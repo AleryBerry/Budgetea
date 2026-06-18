@@ -4,6 +4,7 @@ import "package:currency_text_input_formatter/currency_text_input_formatter.dart
 import "package:flutter/material.dart";
 import "package:flutter_localizations/flutter_localizations.dart";
 import "package:flutter_speed_dial/flutter_speed_dial.dart";
+import "package:google_mobile_ads/google_mobile_ads.dart";
 import "package:intl/intl.dart";
 import "package:intl/intl_standalone.dart";
 import "package:my_app/data_base/budgetea_database.dart";
@@ -21,9 +22,10 @@ import "package:my_app/screens/transaction/transaction_form.dart";
 import "package:my_app/statistics.dart";
 import "package:provider/provider.dart";
 import "package:shared_preferences/shared_preferences.dart";
-
+ 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   BudgeteaDatabase.database =
       await BudgeteaDatabase.initDB("budgetea/budgetea_database.db");
   final AdaptiveThemeMode? savedThemeMode = await AdaptiveTheme.getThemeMode();
@@ -134,12 +136,24 @@ class HomeState extends State<Home> {
                       if (account != null) {
                         (await SharedPreferences.getInstance())
                             .setInt("main_account", account.id);
+                        Constants.accountId = account.id;
                       }
                       if (!context.mounted) return;
-                      _overviewPage.fetchData();
+                      fetchData();
                       Navigator.pop(context);
                     },
                   ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.all_inclusive),
+                  title: Text(AppLocalizations.of(context)!.show_all_accounts),
+                  onTap: () async {
+                    (await SharedPreferences.getInstance()).remove("main_account");
+                    Constants.accountId = 0;
+                    if (!context.mounted) return;
+                    fetchData();
+                    Navigator.pop(context);
+                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.money),

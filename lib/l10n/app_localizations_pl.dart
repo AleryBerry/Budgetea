@@ -148,4 +148,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get currency_totals => 'Sumy Walut';
+
+  @override
+  String get show_all_accounts => 'Pokaż wszystkie konta';
 }

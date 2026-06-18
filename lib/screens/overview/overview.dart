@@ -9,14 +9,18 @@ import "package:my_app/l10n/app_localizations.dart";
 import "package:my_app/models/account.dart";
 import "package:my_app/models/cash_flow.dart";
 import "package:my_app/models/category.dart";
+import "package:my_app/models/constants.dart";
 import "package:my_app/models/currency.dart";
 import "package:my_app/models/transaction.dart";
 import "package:my_app/screens/accounts/accounts.dart";
 import "package:my_app/screens/cash_flow/cash_flow.dart";
 import "package:my_app/screens/overview/transfer_card.dart";
+import "package:my_app/screens/transaction/cashflow_add.dart";
 import "package:my_app/utils/ask_alertdialog.dart";
 import "package:shared_preferences/shared_preferences.dart";
+import "package:my_app/screens/transaction/transaction_form.dart";
 import "package:sqflite_common_ffi/sqflite_ffi.dart";
+import "package:my_app/home/date_selector.dart";
 
 class Overview extends StatelessWidget {
   Overview({super.key});
@@ -35,15 +39,18 @@ class Overview extends StatelessWidget {
   void _fetchData({DateTimeRange? range}) => (() async {
         snapshot.fetched = true;
         final Database db = BudgeteaDatabase.database!;
+        final int? accId = (await SharedPreferences.getInstance()).getInt("main_account");
+        final String accountFilter = (accId != null && accId != 0) ? "ca.account = $accId" : "1 = 1";
         late final String request;
         if (range != null) {
           request = """SELECT ca.*, tra.id as transfer from cash_flow as ca
 LEFT JOIN transfer as tra on (tra.cash_flow_target = ca.id) or (tra.cash_flow_origin = ca.id)
-WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
+WHERE ($accountFilter) AND ca.date < '${range.end}' AND ca.date > '${range.start}'
 ORDER BY datetime(ca.date) DESC""";
         } else {
           request = """SELECT ca.*, tra.id as transfer from cash_flow as ca
 LEFT JOIN transfer as tra on (tra.cash_flow_target = ca.id) or (tra.cash_flow_origin = ca.id)
+WHERE $accountFilter
 ORDER BY datetime(ca.date) DESC""";
         }
         final List<Map<String, Object?>> res = await db.rawQuery(request);
@@ -56,25 +63,13 @@ ORDER BY datetime(ca.date) DESC""";
             (await Future.wait(
               res.where((Map<String, Object?> e) => e["transfer"] != null).map(
                 (Map<String, Object?> e) async {
-                  late final String request2;
-                  if (range == null) {
-                    request2 =
-                        """SELECT tra.id, tra.cash_flow_origin, tra.cash_flow_target, ca.amount, ca.account as origin, acc.name as origin_name, cas.account as target, accs.name as target_name from transfer as tra
+                  final String request2 =
+                      """SELECT tra.id, tra.cash_flow_origin, tra.cash_flow_target, ca.amount, ca.account as origin, acc.name as origin_name, cas.account as target, accs.name as target_name, ca.date, ca.description from transfer as tra
 JOIN cash_flow as ca on tra.cash_flow_origin = ca.id
 JOIN account as acc on acc.id = ca.account
 JOIN cash_flow as cas on tra.cash_flow_target = cas.id
 JOIN account as accs on accs.id = cas.account
-""";
-                  } else {
-                    request2 =
-                        """SELECT tra.id, tra.cash_flow_origin, tra.cash_flow_target, ca.amount, ca.account as origin, acc.name as origin_name, cas.account as target, accs.name as target_name from transfer as tra
-JOIN cash_flow as ca on tra.cash_flow_origin = ca.id
-JOIN account as acc on acc.id = ca.account
-JOIN cash_flow as cas on tra.cash_flow_target = cas.id
-JOIN account as accs on accs.id = cas.account
-WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
-""";
-                  }
+WHERE tra.id = ${e["transfer"]}""";
                   final Map<String, Object?> json =
                       (await db.rawQuery(request2)).first;
                   final Currency currency = Currency.fromJson((await db
@@ -90,6 +85,7 @@ WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
                     ),
                     date: DateTime.tryParse(json["date"].toString()) ??
                         DateTime.now(),
+                    observacion: json["description"]?.toString() ?? "",
                     account2: Account(
                       id: json["target"]?.toInt() ?? 0,
                       name: json["target_name"] as String,
@@ -149,6 +145,22 @@ WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
                               children: <Widget>[
                                 SimpleDialogOption(
                                   onPressed: () async {
+                                    Navigator.pop(context);
+                                    final bool? edited = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute<bool>(
+                                        builder: (BuildContext context) => TransactionForm(
+                                          transfer: e,
+                                        ),
+                                      ),
+                                    );
+                                    if (edited == true) {
+                                      fetchData();
+                                    }
+                                  },
+                                  child: Text(AppLocalizations.of(context)!.localeName == "es" ? "Editar" : "Edit"),
+                                ),
+                                SimpleDialogOption(
+                                  onPressed: () async {
                                     bool response = await alertDialogAsk(
                                       context,
                                       AppLocalizations.of(context)!
@@ -198,79 +210,40 @@ WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
                                     AppLocalizations.of(context)!.view_details,
                                   ),
                                   onPressed: () async {
-                                    Navigator.of(context).push(
-                                      PageRouteBuilder<bool>(
-                                        transitionsBuilder:
-                                            (BuildContext context,
-                                                Animation<double> animation,
-                                                Animation<double>
-                                                    secondaryAnimation,
-                                                Widget child) {
-                                          const Offset begin = Offset(0.0, 1.0);
-                                          const Offset end = Offset.zero;
-                                          const Cubic curve = Curves.ease;
-
-                                          Animatable<Offset> tween =
-                                              Tween<Offset>(
-                                                      begin: begin, end: end)
-                                                  .chain(
-                                                      CurveTween(curve: curve));
-
-                                          return SlideTransition(
-                                            position: animation.drive(tween),
-                                            child: child,
-                                          );
-                                        },
-                                        pageBuilder: (BuildContext context,
-                                            Animation<double> animation,
-                                            Animation<double>
-                                                secondaryAnimation) {
-                                          return CashFlowDetails(
-                                            cashFlow: e,
-                                          );
-                                        },
+                                    Navigator.pop(context);
+                                    final bool? edited = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute<bool>(
+                                        builder: (BuildContext context) => CashFlowForm(
+                                          type: e.amount.$1 < 0
+                                              ? TransactionType.gasto
+                                              : TransactionType.ingreso,
+                                          cashFlow: e,
+                                        ),
                                       ),
                                     );
+                                    if (edited == true) {
+                                      fetchData();
+                                    }
                                   },
                                 ),
                                 SimpleDialogOption(
-                                  onPressed: () {Navigator.of(context).push(
-                                      PageRouteBuilder<bool>(
-                                        transitionsBuilder:
-                                            (BuildContext context,
-                                                Animation<double> animation,
-                                                Animation<double>
-                                                    secondaryAnimation,
-                                                Widget child) {
-                                          const Offset begin = Offset(0.0, 1.0);
-                                          const Offset end = Offset.zero;
-                                          const Cubic curve = Curves.ease;
-
-                                          Animatable<Offset> tween =
-                                              Tween<Offset>(
-                                                      begin: begin, end: end)
-                                                  .chain(
-                                                      CurveTween(curve: curve));
-
-                                          return SlideTransition(
-                                            position: animation.drive(tween),
-                                            child: child,
-                                          );
-                                        },
-                                        pageBuilder: (BuildContext context,
-                                            Animation<double> animation,
-                                            Animation<double>
-                                                secondaryAnimation) {
-                                          return CashFlowDetails(
-                                            cashFlow: e,
-                                          );
-                                        },
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+                                    final bool? edited = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute<bool>(
+                                        builder: (BuildContext context) => CashFlowForm(
+                                          type: e.amount.$1 < 0
+                                              ? TransactionType.gasto
+                                              : TransactionType.ingreso,
+                                          cashFlow: e,
+                                        ),
                                       ),
                                     );
-},
-
-
-                                  child: Text("Edit"),
+                                    if (edited == true) {
+                                      fetchData();
+                                    }
+                                  },
+                                  child: Text(AppLocalizations.of(context)!.localeName == "es" ? "Editar" : "Edit"),
                                 ),
                                 SimpleDialogOption(
                                   onPressed: () async {
@@ -320,132 +293,4 @@ WHERE ca.date < '${range.end}' AND ca.date > '${range.start}'
   }
 }
 
-class DateSelector extends StatefulWidget {
-  const DateSelector({super.key, this.onSelected});
-  final void Function(DateTimeRange?)? onSelected;
 
-  @override
-  DateSelectorState createState() => DateSelectorState();
-}
-
-class DateSelectorState extends State<DateSelector> {
-  String? dropdownValue;
-  DateTimeRange? range;
-  @override
-  void initState() {
-    SharedPreferences.getInstance().then((SharedPreferences instance) {
-      final List<String>? list = instance.getStringList("date_range");
-      if (list != null) {
-        setState(
-          () => range = DateTimeRange(
-            start: DateTime.parse(list[0]),
-            end: DateTime.parse(list[1]),
-          ),
-        );
-        if (widget.onSelected != null) {
-          widget.onSelected!(range);
-        }
-      }
-    });
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: <Widget>[
-        if (dropdownValue != null && dropdownValue != "All Time")
-          Text(dropdownValue!),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.calendar_today),
-          onSelected: (String newValue) async {
-            if (newValue == "Custom Range...") {
-              final DateTime now = DateTime.now().onlyDate();
-              final DateTimeRange? pickedRange = await showDateRangePicker(
-                context: context,
-                firstDate: now.subtract(const Duration(days: 30)),
-                lastDate: DateTime.now(),
-              );
-              if (pickedRange == null) return; // User cancelled
-              setState(() {
-                range = pickedRange;
-                dropdownValue = newValue;
-              });
-            } else {
-              setState(() {
-                dropdownValue = newValue;
-                final DateTime now = DateTime.now().onlyDate();
-                switch (newValue) {
-                  case "Today":
-                    range = DateTimeRange(
-                        start: now.subtract(const Duration(days: 1)),
-                        end: now);
-                    break;
-                  case "Last Week":
-                    range = DateTimeRange(
-                        start: now.subtract(const Duration(days: 7)),
-                        end: now);
-                    break;
-                  case "Last Month":
-                    range = DateTimeRange(
-                        start: now.subtract(const Duration(days: 30)),
-                        end: now);
-                    break;
-                  case "Last Year":
-                    range = DateTimeRange(
-                        start: now.subtract(const Duration(days: 365)),
-                        end: now);
-                    break;
-                  case "All Time":
-                    range = null;
-                    break;
-                }
-              });
-            }
-
-            if (widget.onSelected != null) {
-              widget.onSelected!(range);
-            }
-
-            final SharedPreferences prefs =
-                await SharedPreferences.getInstance();
-            if (range == null) {
-              await prefs.remove("date_range");
-            } else {
-              await prefs.setStringList(
-                "date_range",
-                <String>[
-                  range!.start.toIso8601String(),
-                  range!.end.toIso8601String()
-                ],
-              );
-            }
-          },
-          itemBuilder: (BuildContext context) {
-            return <String>[
-              "Today",
-              "Last Week",
-              "Last Month",
-              "Last Year",
-              "All Time",
-              "Custom Range...",
-            ].map<PopupMenuItem<String>>((String value) {
-              return PopupMenuItem<String>(
-                value: value,
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontWeight: (dropdownValue ?? "All Time") == value
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-              );
-            }).toList();
-          },
-        ),
-      ],
-    );
-  }
-}

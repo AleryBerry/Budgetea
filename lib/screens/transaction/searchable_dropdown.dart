@@ -1,4 +1,5 @@
 import "dart:async";
+import "package:collection/collection.dart";
 import "package:flutter/material.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/models/dropdown_model.dart";
@@ -15,6 +16,7 @@ class SearchableDropDown<T extends DropDownType> extends StatefulWidget {
     this.onAdd,
     this.validator,
     this.selectFirst = false,
+    this.initialValue,
   });
 
   final String label;
@@ -25,6 +27,7 @@ class SearchableDropDown<T extends DropDownType> extends StatefulWidget {
   final void Function(T?) onSelected;
   final Future<bool> Function()? onAdd;
   final FormFieldValidator<T>? validator;
+  final T? initialValue;
 
   @override
   State<SearchableDropDown<T>> createState() => _SearchableDropDownState<T>();
@@ -48,16 +51,19 @@ class _SearchableDropDownState<T extends DropDownType>
   void initState() {
     super.initState();
     loadData().then((List<T> result) {
-      if (widget.selectFirst) {
-        listenable.value = (result.firstOrNull, result);
-        if (listenable.value.$1 != null) {
-          widget.onSelected(listenable.value.$1);
-          _textController.text = listenable.value.$1!.fullName ?? listenable.value.$1!.name;
-        } else {
-          widget.onSelected(null);
+      T? initial;
+      if (widget.initialValue != null) {
+        initial = result.firstWhereOrNull((T e) => e == widget.initialValue);
+      }
+      initial ??= widget.selectFirst ? result.firstOrNull : null;
+
+      listenable.value = (initial, result);
+      if (initial != null) {
+        _textController.text = initial.fullName ?? initial.name;
+        if (widget.initialValue == null && widget.selectFirst) {
+          widget.onSelected(initial);
         }
       } else {
-        listenable.value = (null, result);
         widget.onSelected(null);
       }
     });
@@ -79,6 +85,18 @@ class _SearchableDropDownState<T extends DropDownType>
       _overlayEntry?.markNeedsBuild();
       setState(() {});
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchableDropDown<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) {
+      final T? initial = listenable.value.$2.firstWhereOrNull((T e) => e == widget.initialValue);
+      if (initial != null) {
+        listenable.value = (initial, listenable.value.$2);
+        _textController.text = initial.fullName ?? initial.name;
+      }
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+import "package:collection/collection.dart";
 import "package:flutter/material.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/models/dropdown_model.dart";
@@ -14,6 +15,7 @@ class DropDownCustom<T extends DropDownType> extends StatefulWidget {
     this.onAdd,
     this.validator,
     this.selectFirst = false,
+    this.initialValue,
   });
 
   final String label;
@@ -24,6 +26,7 @@ class DropDownCustom<T extends DropDownType> extends StatefulWidget {
   final void Function(T) onSelected;
   final Future<bool> Function()? onAdd;
   final FormFieldValidator<T>? validator;
+  final T? initialValue;
 
   @override
   State<DropDownCustom<T>> createState() => _DropDownCustomState<T>();
@@ -43,15 +46,28 @@ class _DropDownCustomState<T extends DropDownType>
   void initState() {
     super.initState();
     loadData().then((List<T> result) {
-      if (widget.selectFirst) {
-        listenable.value = (result.firstOrNull, result);
-        if (listenable.value.$1 != null) {
-          widget.onSelected(listenable.value.$1!);
-        }
-      } else {
-        listenable.value = (null, result);
+      T? initial;
+      if (widget.initialValue != null) {
+        initial = result.firstWhereOrNull((T e) => e == widget.initialValue);
+      }
+      initial ??= widget.selectFirst ? result.firstOrNull : null;
+      
+      listenable.value = (initial, result);
+      if (initial != null && widget.initialValue == null && widget.selectFirst) {
+        widget.onSelected(initial);
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant DropDownCustom<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) {
+      final T? initial = listenable.value.$2.firstWhereOrNull((T e) => e == widget.initialValue);
+      if (initial != null) {
+        listenable.value = (initial, listenable.value.$2);
+      }
+    }
   }
 
   @override

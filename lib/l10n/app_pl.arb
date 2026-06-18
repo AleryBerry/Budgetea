@@ -45,4 +45,6 @@
   "yes": "Tak",
   "no": "Nie",
   "currency_totals": "Sumy walut"
+  "currency_totals": "Sumy Walut",
+  "show_all_accounts": "Pokaż wszystkie konta"
 }

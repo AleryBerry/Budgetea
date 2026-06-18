@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   devicelocale
+  file_selector_linux
   sqlite3_flutter_libs
 )
 

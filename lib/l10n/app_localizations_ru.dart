@@ -151,4 +151,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get currency_totals => 'Итоги по валютам';
+
+  @override
+  String get show_all_accounts => 'Показать все счета';
 }

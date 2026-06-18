@@ -14,6 +14,7 @@ Future<(Currency, double, double, double)> getWinsAndLosses(
   final Database db = BudgeteaDatabase.database!;
   final int? accId =
       accountId ?? (await SharedPreferences.getInstance()).getInt("main_account");
+  final String accountFilter = (accId != null && accId != 0) ? "account = $accId" : "1 = 1";
   late final String request;
   if (range != null) {
     request = """select coalesce(sum(amount), 0) as total, 
@@ -22,7 +23,7 @@ coalesce(sum(case when amount < 0.0 then amount else 0.0 end), 0) as expenditure
 account,
 currency
 from cash_flow
-where ((account = $accId) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = $accId))) AND (date < '${range.end}' AND date > '${range.start}')
+where $accountFilter AND (date < '${range.end}' AND date > '${range.start}')
 group by currency""";
   } else {
     request = """select coalesce(sum(amount), 0) as total, 
@@ -31,7 +32,7 @@ coalesce(sum(case when amount < 0.0 then amount else 0.0 end), 0) as expenditure
 account,
 currency
 from cash_flow
-where (account = $accId) OR (NOT EXISTS (SELECT 1 FROM account WHERE id = $accId))
+where $accountFilter
 group by currency""";
   }
 

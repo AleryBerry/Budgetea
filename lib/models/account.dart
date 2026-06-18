@@ -68,14 +68,16 @@ WHERE re.parent_account = $id
     final Database db = BudgeteaDatabase.database!;
     final List<Map<String, Object?>> json =
         await db.query("account_totals", where: "id = $id");
-    await db.query("currency");
+    final List<Map<String, Object?>> validJson =
+        json.where((Map<String, Object?> e) => e["currency"] != null).toList();
+    if (validJson.isEmpty) return <(Currency, double)>[];
     final Iterable<Currency> currencies = (await db.query("currency",
-            where: json
+            where: validJson
                 .map((Map<String, Object?> e) => "id = ${e['currency']}")
                 .join(" OR ")))
         .map(Currency.fromJson);
 
-    return json
+    return validJson
         .map((Map<String, Object?> e) => (
               currencies
                   .firstWhere((Currency n) => n.id == e["currency"]?.toInt()),
@@ -90,11 +92,19 @@ WHERE re.parent_account = $id
         await db.query("account_totals", where: "id = $id");
     final double selfTotal = await json.fold(
       Future<double>.value(0.0),
-      (FutureOr<double> acc, Map<String, Object?> val) async =>
-          (await acc) +
-          val["amount"]!.toDouble() *
-              await getExchangeRate(Currency(id: val["currency"]?.toInt() ?? 0),
-                  const Currency(id: 140)),
+      (FutureOr<double> acc, Map<String, Object?> val) async {
+        final double currentAcc = await acc;
+        final double amount = (val["amount"] as num?)?.toDouble() ?? 0.0;
+        final int? currencyId = val["currency"] != null ? (val["currency"] as num).toInt() : null;
+        if (amount == 0 || currencyId == null) {
+          return currentAcc;
+        }
+        final double rate = await getExchangeRate(
+          Currency(id: currencyId),
+          const Currency(id: 140),
+        );
+        return currentAcc + amount * rate;
+      },
     );
 
     final double childrenTotal = await (await getAccountChildren(id)).fold(

@@ -5,7 +5,8 @@ import "package:intl/intl.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/main.dart";
 import "package:my_app/models/account.dart";
-import "package:my_app/screens/transaction/dropdown_custom.dart";
+import "package:my_app/home/date_selector.dart";
+import "package:my_app/l10n/app_localizations.dart";
 import "package:my_app/screens/accounts/accounts.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:my_app/models/currency.dart";
@@ -84,6 +85,8 @@ class _StatisticsState extends State<Statistics> {
   ];
 
   int accountId = Constants.accountId;
+  DateTimeRange? dateRange;
+  List<Account> accounts = <Account>[];
 
   final Map<int, Currency> _currencyCache = <int, Currency>{};
   final Map<int, double> _rateCache = <int, double>{};
@@ -110,12 +113,33 @@ class _StatisticsState extends State<Statistics> {
   }
 
   void fetchData() async {
+    final Database db = BudgeteaDatabase.database!;
     final int mainCurrencyId = (await SharedPreferences.getInstance()).getInt("main_currency") ?? 140;
     final Currency mainCurrency = Currency(id: mainCurrencyId);
 
+    // Dynamic filters
+    final String accountFilter = (accountId != 0) ? "account = $accountId" : "1 = 1";
+    final String cfAccountFilter = (accountId != 0) ? "cf.account = $accountId" : "1 = 1";
+    final String dateFilter = _getDateFilter(dateRange);
+
     // Monthly Cash Flow
-    final List<Map<String, Object?>> monthlyRawData = 
-        await BudgeteaDatabase().getMonthlyCashFlow(accountId);
+    final String monthlyQuery = """
+      SELECT
+          strftime('%Y-%m', date) as month,
+          currency,
+          SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+          SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as expense
+      FROM
+          cash_flow
+      WHERE
+          $accountFilter AND $dateFilter
+      GROUP BY
+          month, currency
+      ORDER BY
+          month;
+    """;
+    final List<Map<String, Object?>> monthlyRawData = await db.rawQuery(monthlyQuery);
+
     final Map<String, (double, double)> monthlyAggregates = <String, (double, double)>{};
     for (final Map<String, Object?> row in monthlyRawData) {
       final String month = row["month"] as String;
@@ -133,14 +157,31 @@ class _StatisticsState extends State<Statistics> {
         .toList();
     monthlyCashFlowSnapshot.replace(processedMonthlyData);
 
-    // Category Expenses
-    final List<Map<String, Object?>> categoryRawData = 
-        await BudgeteaDatabase().getCategoryExpenses(accountId);
+    // Category Expenses (Expenses by Category)
+    final String categoryQuery = """
+      SELECT
+          cfc.name,
+          cf.currency,
+          SUM(cf.amount) as total
+      FROM
+          cash_flow cf
+      JOIN
+          cash_flow_category cfc ON cf.category = cfc.id
+      WHERE
+          $cfAccountFilter AND cf.amount < 0 AND $dateFilter
+      GROUP BY
+          cfc.name, cf.currency
+      ORDER BY
+          total;
+    """;
+    final List<Map<String, Object?>> categoryRawData = await db.rawQuery(categoryQuery);
+
     final Map<String, double> categoryAggregates = <String, double>{};
     for (final Map<String, Object?> row in categoryRawData) {
       final String name = row["name"] as String;
       final int currencyId = row["currency"] as int;
-      final double total = (row["total"] as num).toDouble();
+      // Convert to absolute value so that expenses are positive numbers
+      final double total = (row["total"] as num).toDouble().abs();
 
       final double rate = await _getRate(currencyId, mainCurrency);
 
@@ -152,8 +193,19 @@ class _StatisticsState extends State<Statistics> {
     categoryExpenseSnapshot.replace(processedCategoryData);
 
     // Balance Over Time
-    final List<Map<String, Object?>> balanceRawData = 
-        await BudgeteaDatabase().getBalanceOverTime(accountId);
+    final String balanceQuery = """
+      SELECT
+          date,
+          amount,
+          currency
+      FROM
+          cash_flow
+      WHERE
+          $accountFilter AND $dateFilter
+      ORDER BY
+          date;
+    """;
+    final List<Map<String, Object?>> balanceRawData = await db.rawQuery(balanceQuery);
     
     final Map<DateTime, List<double>> dailyBalances = <DateTime, List<double>>{};
     double currentBalance = 0.0;
@@ -196,10 +248,30 @@ class _StatisticsState extends State<Statistics> {
     balanceOverTimeSnapshot.replace(processedCandlestickData);
   }
 
+  String _getDateFilter(DateTimeRange? range) {
+    if (range == null) return "1 = 1";
+    final String startStr = range.start.toIso8601String();
+    final DateTime endLimit = range.end.add(const Duration(days: 1));
+    final String endStr = endLimit.toIso8601String();
+    return "date >= '$startStr' AND date < '$endStr'";
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadAccounts();
     fetchData();
+  }
+
+  void _loadAccounts() async {
+    final Database db = BudgeteaDatabase.database!;
+    final List<Map<String, Object?>> res = await db.query("account");
+    setState(() {
+      accounts = [
+        const Account(id: 0, name: "All Accounts"),
+        ...res.map(Account.fromJson)
+      ];
+    });
   }
 
   @override
@@ -209,21 +281,41 @@ class _StatisticsState extends State<Statistics> {
       child: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            DropDownCustom<Account>(
-              label: "Account",
-              table: "account",
-              onSelected: (Account account) {
-                setState(() {
-                  accountId = account.id;
-                });
-                fetchData();
-              },
-              child: (Account account) {
-                return Text(account.name);
-              },
-              getType: (List<Map<String, Object?>> json) {
-                return json.map(Account.fromJson).toList();
-              },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: accountId,
+                    decoration: const InputDecoration(labelText: "Account"),
+                    items: accounts.map((Account account) {
+                      return DropdownMenuItem<int>(
+                        value: account.id,
+                        child: Text(account.id == 0
+                            ? AppLocalizations.of(context)!.show_all_accounts
+                            : account.name),
+                      );
+                    }).toList(),
+                    onChanged: (int? val) {
+                      if (val != null) {
+                        setState(() {
+                          accountId = val;
+                        });
+                        fetchData();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                DateSelector(
+                  onSelected: (DateTimeRange? range) {
+                    setState(() {
+                      dateRange = range;
+                    });
+                    fetchData();
+                  },
+                ),
+              ],
             ),
             Card(
               child: Padding(

@@ -44,5 +44,6 @@
   "delete": "Удалить",
   "yes": "Да",
   "no": "Нет",
-  "currency_totals": "Итоги по валютам"
+  "currency_totals": "Итоги по валютам",
+  "show_all_accounts": "Показать все счета"
 }

@@ -16,65 +16,101 @@ import "package:my_app/models/account.dart";
 import "package:my_app/models/cash_flow.dart";
 import "package:my_app/models/currency.dart";
 import "package:my_app/screens/accounts/account_creation.dart";
+import "package:my_app/home/date_selector.dart";
 import "package:my_app/screens/transaction/cashflow_add.dart";
 import "package:my_app/utils/ask_alertdialog.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
-class AccountDetails extends StatelessWidget {
+class AccountDetails extends StatefulWidget {
   const AccountDetails({required this.account, super.key});
   final Account account;
+
+  @override
+  State<AccountDetails> createState() => _AccountDetailsState();
+}
+
+class _AccountDetailsState extends State<AccountDetails> {
+  DateTimeRange? dateRange;
+
+  String _getDateFilter(DateTimeRange? range) {
+    if (range == null) return "1 = 1";
+    final String startStr = range.start.toIso8601String();
+    final DateTime endLimit = range.end.add(const Duration(days: 1));
+    final String endStr = endLimit.toIso8601String();
+    return "date >= '$startStr' AND date < '$endStr'";
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Account Details (${account.name})"),
+        title: Text("Account Details (${widget.account.name})"),
         elevation: 0,
-        actions: <Widget>[
-          IconButton(
-              onPressed: () async {
-                final bool result = await Navigator.push<bool>(
-                      context,
-                      PageRouteBuilder<bool>(
-                        transitionsBuilder: (BuildContext context,
-                            Animation<double> animation,
-                            Animation<double> secondaryAnimation,
-                            Widget child) {
-                          const Offset begin = Offset(0.0, 1.0);
-                          const Offset end = Offset.zero;
-                          const Cubic curve = Curves.ease;
-
-                          Animatable<Offset> tween =
-                              Tween<Offset>(begin: begin, end: end)
-                                  .chain(CurveTween(curve: curve));
-
-                          return SlideTransition(
-                              position: animation.drive(tween), child: child);
-                        },
-                        pageBuilder: (BuildContext context, Animation<double> _,
-                                Animation<double> __) =>
-                            LastActivity(
-                          account: account,
-                        ),
-                      ),
-                    ) ??
-                    false;
-              },
-              icon: const Icon(Icons.history))
-        ],
       ),
-      body: Column(
-        children: <Widget>[
-          Balance(accountId: account.id),
-          CurrencyTotals(account: account),
-          const Divider(),
-          Expanded(
-            child: FutureBuilder<TreeNode<Account>>(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Balance(accountId: widget.account.id),
+            CurrencyTotals(account: widget.account),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text(
+                    AppLocalizations.of(context)!.last_activities,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  DateSelector(
+                    onSelected: (DateTimeRange? range) {
+                      setState(() {
+                        dateRange = range;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            FutureBuilder<List<CashFlow>>(
+              future: (() async {
+                final List<Account> descendants = await widget.account.getAllDescendants();
+                final List<int> accountIds = <int>[
+                  widget.account.id,
+                  ...descendants.map((Account e) => e.id)
+                ];
+                final String dateFilter = _getDateFilter(dateRange);
+                return (await BudgeteaDatabase.database!.query("cash_flow",
+                        where: "account IN (${accountIds.join(', ')}) AND $dateFilter",
+                        limit: 15,
+                        orderBy: "datetime(date) desc"))
+                    .map(CashFlow.fromJson)
+                    .toList();
+              })(),
+              builder: (BuildContext context, AsyncSnapshot<List<CashFlow>> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data == null || snapshot.data!.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: Text("No movements found")),
+                  );
+                }
+                return Column(
+                  children: snapshot.data!
+                      .map((CashFlow e) => CashFlowCard(e))
+                      .toList(),
+                );
+              },
+            ),
+            FutureBuilder<TreeNode<Account>>(
               future: (() async => TreeNode<Account>.root()
                 ..addAll(
                   await Future.wait(
-                    (await account.getChildren()).map(
+                    (await widget.account.getChildren()).map(
                       (Account e) async => TreeNode<Account>(
                         key: e.id.toString(),
                         data: e,
@@ -95,12 +131,19 @@ class AccountDetails extends StatelessWidget {
                   return const Center();
                 }
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Text(
-                      AppLocalizations.of(context)!.children,
-                      textAlign: TextAlign.center,
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        AppLocalizations.of(context)!.children,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
-                    Expanded(
+                    SizedBox(
+                      height: 300,
                       child: AccountsTree(
                         widget: (TreeNode<Account> item,
                                 TreeViewController<Account, TreeNode<Account>>?
@@ -114,69 +157,9 @@ class AccountDetails extends StatelessWidget {
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LastActivity extends StatelessWidget {
-  const LastActivity({
-    super.key,
-    required this.account,
-  });
-
-  final Account account;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: LastActivityBody(account: account),
-    );
-  }
-}
-
-class LastActivityBody extends StatelessWidget {
-  const LastActivityBody({
-    super.key,
-    required this.account,
-  });
-
-  final Account account;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      children: <Widget>[
-        Text(AppLocalizations.of(context)!.last_activities),
-        FutureBuilder<List<CashFlow>>(
-          future: (() async {
-            final List<Account> descendants = await account.getAllDescendants();
-            final List<int> accountIds = <int>[
-              account.id,
-              ...descendants.map((Account e) => e.id)
-            ];
-            return (await BudgeteaDatabase.database!.query("cash_flow",
-                    where: "account IN (${accountIds.join(', ')})",
-                    limit: 5,
-                    orderBy: "datetime(date) desc"))
-                .map(CashFlow.fromJson)
-                .toList();
-          })(),
-          builder:
-              (BuildContext context, AsyncSnapshot<List<CashFlow>> snapshot) {
-            return Column(
-              children: snapshot.data
-                      ?.map((CashFlow e) => CashFlowCard(e))
-                      .toList() ??
-                  <Widget>[],
-            );
-          },
+          ],
         ),
-      ],
+      ),
     );
   }
 }

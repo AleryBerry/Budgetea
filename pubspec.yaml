@@ -61,6 +61,8 @@ dependencies:
   fl_chart: ^1.1.0
   flutter_localizations:
     sdk: flutter
+  image_picker: ^1.2.2
+  google_mobile_ads: ^9.0.0
 
 dev_dependencies:
   flutter_test:
