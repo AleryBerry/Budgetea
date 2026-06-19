@@ -4,7 +4,6 @@ import "package:currency_text_input_formatter/currency_text_input_formatter.dart
 import "package:flutter/material.dart";
 import "package:flutter_localizations/flutter_localizations.dart";
 import "package:flutter_speed_dial/flutter_speed_dial.dart";
-import "package:google_mobile_ads/google_mobile_ads.dart";
 import "package:intl/intl.dart";
 import "package:intl/intl_standalone.dart";
 import "package:my_app/data_base/budgetea_database.dart";
@@ -25,7 +24,6 @@ import "package:shared_preferences/shared_preferences.dart";
  
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  MobileAds.instance.initialize();
   BudgeteaDatabase.database =
       await BudgeteaDatabase.initDB("budgetea/budgetea_database.db");
   final AdaptiveThemeMode? savedThemeMode = await AdaptiveTheme.getThemeMode();
