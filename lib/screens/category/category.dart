@@ -1,10 +1,10 @@
 import "package:flex_color_picker/flex_color_picker.dart";
 import "package:flutter/material.dart";
 import "package:flutter_iconpicker/flutter_iconpicker.dart";
+import "package:flutter_iconpicker/Models/configuration.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/extension_methods/color.dart";
 import "package:my_app/l10n/app_localizations.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 Future<bool> colorPickerDialog(BuildContext context,
     ValueNotifier<(Color?, IconPickerIcon?)> dialogPickerColor) async {
@@ -111,7 +111,12 @@ class CategoryCreation extends StatelessWidget {
                       color: colorAndIcon.$1,
                       onPressed: () async {
                         final IconPickerIcon? pickerIcon =
-                            await showIconPicker(context);
+                            await showIconPicker(
+                          context,
+                          configuration: const SinglePickerConfiguration(
+                            iconPackModes: <IconPack>[IconPack.material],
+                          ),
+                        );
 
                         if (pickerIcon == null) {
                           selectedColorAndIcon.value =

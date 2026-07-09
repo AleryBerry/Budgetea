@@ -15,28 +15,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get accounts => 'Счета';
 
   @override
-  String get deposit => 'Пополнить';
+  String get deposit => 'Пополнение';
 
   @override
-  String get withdrawal => 'Вывести';
+  String get withdrawal => 'Снятие';
 
   @override
-  String get transfer => 'Перевести';
+  String get transfer => 'Перевод';
 
   @override
   String get create_account => 'Создать счёт';
 
   @override
-  String get can_receive_cash_flows => 'Может получать денежные потоки';
+  String get can_receive_cash_flows => 'Может участвовать в транзакциях';
 
   @override
-  String get select_parent => 'Выберите родителя';
+  String get select_parent => 'Выберите родительский счет';
 
   @override
-  String get no_parent_selected => 'Родитель не выбран';
+  String get no_parent_selected => 'Родительский счет не выбран';
 
   @override
-  String get no_parent => 'Без родителя';
+  String get no_parent => 'Нет родительского счета';
 
   @override
   String get currencies => 'Валюты';
@@ -49,16 +49,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get account_doesnt_own_currency =>
-      'Исходный счет не имеет достаточно этой валюты!';
+      'На исходном счете недостаточно средств в этой валюте!';
 
   @override
   String get currency => 'Валюта';
 
   @override
-  String get origin_account => 'Счет происхождения';
+  String get origin_account => 'Исходный счет';
 
   @override
-  String get target_account => 'Целевой счет';
+  String get target_account => 'Счет зачисления';
 
   @override
   String get set_main_currency => 'Установите основную валюту';
@@ -86,16 +86,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get account_delete_has_children =>
-      'У счета есть дети, хотите ли вы удалить их тоже?';
+      'У счета есть дочерние счета, удалить их тоже?';
 
   @override
-  String get children => 'дети';
+  String get children => 'Дочерние счета';
 
   @override
-  String get reparent => 'Сменить родителя';
+  String get reparent => 'Изменить родительский счет';
 
   @override
-  String get rename => 'переименовать';
+  String get rename => 'Переименовать';
 
   @override
   String get category => 'Категория';
@@ -121,13 +121,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cash_flow_options => 'Параметры денежного потока';
 
   @override
-  String get view_details => 'просмотреть детали';
+  String get view_details => 'Просмотреть детали';
 
   @override
-  String get empty_number => 'Пустое поле номера';
+  String get empty_number => 'Поле не может быть пустым';
 
   @override
-  String get accept => 'Принимать';
+  String get accept => 'Подтвердить';
 
   @override
   String get statistics => 'Статистика';

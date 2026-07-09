@@ -6,7 +6,6 @@ import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/extension_methods/date_time.dart";
 import "package:my_app/extension_methods/double.dart";
 import "package:my_app/models/currency.dart";
-import "package:sqflite/sqflite.dart";
 
 Future<double> getExchangeRate(Currency origin, Currency target,
     {BuildContext? context}) async {

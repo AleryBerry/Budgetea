@@ -3,7 +3,6 @@ import "package:collection/collection.dart";
 import "package:flutter/material.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/models/dropdown_model.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 class SearchableDropDown<T extends DropDownType> extends StatefulWidget {
   const SearchableDropDown({

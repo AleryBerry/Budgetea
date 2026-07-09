@@ -20,7 +20,6 @@ import "package:my_app/screens/accounts/accounts.dart";
 import "package:my_app/screens/category/category.dart";
 import "package:my_app/screens/transaction/cashflow_add.dart";
 import "package:my_app/screens/transaction/dropdown_custom.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 class TransactionForm extends StatefulWidget {
   const TransactionForm({

@@ -9,7 +9,6 @@ import "package:my_app/models/account.dart";
 import "package:my_app/models/cash_flow.dart";
 import "package:my_app/models/category.dart";
 import "package:my_app/models/currency.dart";
-import "package:sqflite/sqflite.dart";
 
 class CashFlowCard extends StatelessWidget {
   const CashFlowCard(this.cashFlow, {this.onTap, this.onLongPress, super.key});

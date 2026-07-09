@@ -23,7 +23,6 @@ import "package:my_app/screens/accounts/accounts.dart";
 import "package:my_app/screens/category/category.dart";
 import "package:my_app/screens/transaction/dropdown_custom.dart";
 import "package:my_app/screens/transaction/searchable_dropdown.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 Future<Account?> accountSelector(BuildContext context) async {
   final DataRequest<TreeNode<Account>> snapshot =

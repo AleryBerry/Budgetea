@@ -7,7 +7,6 @@ import "package:my_app/extension_methods/double.dart";
 import "package:my_app/models/currency.dart";
 import "package:my_app/models/dropdown_model.dart";
 import "package:my_app/utils/currency_fetch.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 class Account with DropDownType, EquatableMixin {
   const Account({

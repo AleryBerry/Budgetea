@@ -1,19 +1,20 @@
+import "dart:async";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:my_app/data_base/budgetea_database.dart";
 import "package:my_app/extension_methods/double.dart";
 import "package:my_app/main.dart";
 import "package:my_app/models/currency.dart";
+import "package:my_app/models/constants.dart";
 import "package:my_app/screens/accounts/accounts.dart";
 import "package:my_app/utils/currency_fetch.dart";
 import "package:shared_preferences/shared_preferences.dart";
-import "package:sqflite/sqflite.dart";
 
 Future<(Currency, double, double, double)> getWinsAndLosses(
     {BuildContext? context, DateTimeRange? range, int? accountId}) async {
   final Database db = BudgeteaDatabase.database!;
   final int? accId =
-      accountId ?? (await SharedPreferences.getInstance()).getInt("main_account");
+      accountId ?? (await SharedPreferences.getInstance()).getInt(PreferencesKeys.mainAccount);
   final String accountFilter = (accId != null && accId != 0) ? "account = $accId" : "1 = 1";
   late final String request;
   if (range != null) {
@@ -42,7 +43,7 @@ group by currency""";
   double earnings = 0.0;
   double expenditures = 0.0;
   int prefsId =
-      (await SharedPreferences.getInstance()).getInt("main_currency") ?? 140;
+      (await SharedPreferences.getInstance()).getInt(PreferencesKeys.mainCurrency) ?? 140;
 
   for (final Map<String, Object?> val in json) {
     final Database db = BudgeteaDatabase.database!;
@@ -84,25 +85,54 @@ group by currency""";
   }
 }
 
-class Balance extends StatelessWidget {
-  Balance({super.key, this.accountId});
+class Balance extends StatefulWidget {
+  const Balance({super.key, this.accountId, this.range});
   final int? accountId;
+  final DateTimeRange? range;
 
+  @override
+  State<Balance> createState() => _BalanceState();
+}
+
+class _BalanceState extends State<Balance> {
   final DataRequest<(Currency, double, double, double)> snapshot =
       DataRequest<(Currency, double, double, double)>(
           (const Currency(), 0, 0, 0));
 
-  void fetchData({BuildContext? context, DateTimeRange? range}) async {
+  StreamSubscription<List<Map<String, Object?>>>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _watchData();
+  }
+
+  @override
+  void didUpdateWidget(Balance oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.range != widget.range || oldWidget.accountId != widget.accountId) {
+      _watchData();
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _watchData() {
     snapshot.fetched = true;
-    snapshot.replace(await getWinsAndLosses(
-        context: context, range: range, accountId: accountId));
+    _subscription?.cancel();
+
+    _subscription = BudgeteaDatabase.database!.watchQuery("SELECT * FROM cash_flow", readsFrom: {BudgeteaDatabase.database!.driftDb.cashFlows}).listen((_) async {
+      snapshot.replace(await getWinsAndLosses(
+          context: mounted ? context : null, range: widget.range, accountId: widget.accountId));
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!snapshot.fetched) {
-      fetchData(context: context);
-    }
 
     return ListenableBuilder(
       listenable: snapshot,

@@ -19,8 +19,8 @@ import "package:my_app/screens/accounts/account_creation.dart";
 import "package:my_app/home/date_selector.dart";
 import "package:my_app/screens/transaction/cashflow_add.dart";
 import "package:my_app/utils/ask_alertdialog.dart";
+import "package:my_app/models/constants.dart";
 import "package:shared_preferences/shared_preferences.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 class AccountDetails extends StatefulWidget {
   const AccountDetails({required this.account, super.key});
@@ -82,10 +82,8 @@ class _AccountDetailsState extends State<AccountDetails> {
                   ...descendants.map((Account e) => e.id)
                 ];
                 final String dateFilter = _getDateFilter(dateRange);
-                return (await BudgeteaDatabase.database!.query("cash_flow",
-                        where: "account IN (${accountIds.join(', ')}) AND $dateFilter",
-                        limit: 15,
-                        orderBy: "datetime(date) desc"))
+                return (await BudgeteaDatabase.database!.rawQuery(
+                        "SELECT * FROM cash_flow WHERE account IN (${accountIds.join(', ')}) AND $dateFilter ORDER BY datetime(date) desc LIMIT 15"))
                     .map(CashFlow.fromJson)
                     .toList();
               })(),
@@ -164,16 +162,34 @@ class _AccountDetailsState extends State<AccountDetails> {
   }
 }
 
-class AccountsList extends StatelessWidget {
-  AccountsList({super.key});
+class AccountsList extends StatefulWidget {
+  const AccountsList({super.key});
+
+  @override
+  State<AccountsList> createState() => _AccountsListState();
+}
+
+class _AccountsListState extends State<AccountsList> {
   final DataRequest<TreeNode<Account>> snapshot =
       DataRequest<TreeNode<Account>>(TreeNode<Account>.root());
+  StreamSubscription<List<Map<String, Object?>>>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _watchData();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!snapshot.fetched) fetchData();
     return Padding(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.only(top: kToolbarHeight),
       child: Column(
         children: <Widget>[
           const CurrencyTotals(),
@@ -270,7 +286,7 @@ class AccountsList extends StatelessWidget {
                                     ),
                                   ) ??
                                   false) {
-                                fetchData();
+                                // Handled by stream
                               }
                             },
                             child: const Text("Add Child"),
@@ -291,18 +307,15 @@ class AccountsList extends StatelessWidget {
                                         onFieldSubmitted: (String val) async {
                                           if (formKey.currentState!
                                               .validate()) {
-                                            (
-                                              await BudgeteaDatabase.database!
-                                                  .update(
-                                                      "account",
-                                                      <String, Object?>{
-                                                        "name": val
-                                                      },
-                                                      where:
-                                                          "id = ${item.data!.id}"),
-                                            );
+                                            await BudgeteaDatabase.database!
+                                                .update(
+                                                    "account",
+                                                    <String, Object?>{
+                                                      "name": val
+                                                    },
+                                                    where:
+                                                        "id = ${item.data!.id}");
                                             if (!context.mounted) return;
-                                            fetchData();
                                             Navigator.pop(context);
                                           }
                                         },
@@ -391,7 +404,6 @@ class AccountsList extends StatelessWidget {
                                   "account_relationship",
                                   where: "child_account = ${item.data!.id}",
                                 );
-                                fetchData();
                                 return;
                               }
                               if ((await db.query(
@@ -416,7 +428,6 @@ class AccountsList extends StatelessWidget {
                                   where: "child_account = ${item.data!.id}",
                                 );
                               }
-                              fetchData();
                             },
                             child: Text(AppLocalizations.of(context)!.reparent),
                           ),
@@ -429,8 +440,10 @@ class AccountsList extends StatelessWidget {
                                     .account_delete_sure,
                               );
                               if (!delete) return;
-                              final List<Account> children =
-                                  await item.data!.getChildren();
+                              final Database db = BudgeteaDatabase.database!;
+                              final List<Account> descendants = await item.data!.getAllDescendants();
+                              final List<Map<String, Object?>> children =
+                                  await db.rawQuery("SELECT * FROM account WHERE parent_id = ${item.data!.id} LIMIT 1");
                               if (!context.mounted) return;
                               bool deleteChildren = children.isEmpty ||
                                   await alertDialogAsk(
@@ -439,20 +452,12 @@ class AccountsList extends StatelessWidget {
                                         .account_delete_has_children,
                                   );
 
-                              final Batch batch =
-                                  BudgeteaDatabase.database!.batch();
-                              batch.delete("account",
-                                  where: "id = ${item.data!.id}");
-                              if (deleteChildren) {
-                                for (final Account account in children) {
-                                  batch.delete("account",
-                                      where: "id = ${account.id}");
-                                }
+                              await db.delete("account", where: "id = ${item.data!.id}");
+                              for (final Account child in descendants) {
+                                await db.delete("account", where: "id = ${child.id}");
                               }
-                              await batch.commit(continueOnError: true);
                               if (!newContext.mounted || !context.mounted)
                                 return;
-                              HomeState.of(context).fetchData();
                               Navigator.pop(newContext);
                             },
                             child: Text(AppLocalizations.of(context)!.delete),
@@ -463,11 +468,10 @@ class AccountsList extends StatelessWidget {
                             onPressed: () async {
                               if (item.data != null) {
                                 (await SharedPreferences.getInstance())
-                                    .setInt("main_account", item.data!.id);
+                                    .setInt(PreferencesKeys.mainAccount, item.data!.id);
                                 Constants.accountId = item.data!.id;
                               }
                               if (!context.mounted) return;
-                              HomeState.of(context).fetchData();
                               Navigator.pop(context);
                             },
                           ),
@@ -484,31 +488,33 @@ class AccountsList extends StatelessWidget {
     );
   }
 
-  void fetchData() async {
+  void _watchData() {
+    snapshot.fetched = true;
+    _subscription?.cancel();
     Database db = BudgeteaDatabase.database!;
-    List<Map<String, Object?>> json = await db.query("account_roots");
-    snapshot.replace(
-      TreeNode<Account>.root()
-        ..addAll(
-          await Future.wait(
-            json.map(
-              (Map<String, Object?> e) async {
-                return TreeNode<Account>(
-                  data: Account.fromJson(e),
-                )..addAll(
-                    (await Account.getAccountChildren(e["id"]?.toInt() ?? 1))
-                        .map(
-                      (Account e) => TreeNode<Account>(
-                        key: e.id.toString(),
-                        data: e,
+    _subscription = db.watchQuery("SELECT * FROM account_roots", readsFrom: {db.driftDb.accounts}).listen((json) async {
+      snapshot.replace(
+        TreeNode<Account>.root()
+          ..addAll(
+            await Future.wait(
+              json.map(
+                (Map<String, Object?> e) async {
+                  return TreeNode<Account>(
+                    key: e["id"].toString(),
+                    data: Account.fromJson(e),
+                  )..addAll(
+                      (await Account.getAccountChildren(e["id"]?.toInt() ?? 1))
+                          .map(
+                        (Account e) => TreeNode<Account>(
+                            key: e.id.toString(), data: e),
                       ),
-                    ),
-                  );
-              },
+                    );
+                },
+              ),
             ),
           ),
-        ),
-    );
+      );
+    });
   }
 }
 

@@ -11,7 +11,8 @@ import "package:my_app/screens/accounts/accounts.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:my_app/models/currency.dart";
 import "package:my_app/utils/currency_fetch.dart";
-import "package:sqflite_common/sqlite_api.dart";
+import "dart:async";
+import "package:my_app/models/constants.dart";
 
 class MonthlyCashFlow {
   final String month;
@@ -61,9 +62,12 @@ class Statistics extends StatefulWidget {
 }
 
 class _StatisticsState extends State<Statistics> {
+  StreamSubscription<List<Map<String, Object?>>>? _subscription;
   final DataRequest<List<MonthlyCashFlow>> monthlyCashFlowSnapshot = 
       DataRequest<List<MonthlyCashFlow>>(<MonthlyCashFlow>[]);
   final DataRequest<List<CategoryExpense>> categoryExpenseSnapshot = 
+      DataRequest<List<CategoryExpense>>(<CategoryExpense>[]);
+  final DataRequest<List<CategoryExpense>> categoryIncomeSnapshot = 
       DataRequest<List<CategoryExpense>>(<CategoryExpense>[]);
   final DataRequest<List<DailyCandlestickData>> balanceOverTimeSnapshot = 
       DataRequest<List<DailyCandlestickData>>(<DailyCandlestickData>[]);
@@ -112,9 +116,23 @@ class _StatisticsState extends State<Statistics> {
     return rate;
   }
 
-  void fetchData() async {
+  @override
+  void initState() {
+    super.initState();
+    _watchData();
+    _loadAccounts();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _watchData() async {
+    _subscription?.cancel();
     final Database db = BudgeteaDatabase.database!;
-    final int mainCurrencyId = (await SharedPreferences.getInstance()).getInt("main_currency") ?? 140;
+    final int mainCurrencyId = (await SharedPreferences.getInstance()).getInt(PreferencesKeys.mainCurrency) ?? 140;
     final Currency mainCurrency = Currency(id: mainCurrencyId);
 
     // Dynamic filters
@@ -122,7 +140,8 @@ class _StatisticsState extends State<Statistics> {
     final String cfAccountFilter = (accountId != 0) ? "cf.account = $accountId" : "1 = 1";
     final String dateFilter = _getDateFilter(dateRange);
 
-    // Monthly Cash Flow
+    _subscription = db.watchQuery("SELECT 1 FROM cash_flow LIMIT 1", readsFrom: {db.driftDb.cashFlows}).listen((_) async {
+      // Monthly Cash Flow
     final String monthlyQuery = """
       SELECT
           strftime('%Y-%m', date) as month,
@@ -192,6 +211,39 @@ class _StatisticsState extends State<Statistics> {
         .toList();
     categoryExpenseSnapshot.replace(processedCategoryData);
 
+    // Category Incomes (Income by Category)
+    final String categoryIncomeQuery = """
+      SELECT
+          cfc.name,
+          cf.currency,
+          SUM(cf.amount) as total
+      FROM
+          cash_flow cf
+      JOIN
+          cash_flow_category cfc ON cf.category = cfc.id
+      WHERE
+          $cfAccountFilter AND cf.amount > 0 AND $dateFilter
+      GROUP BY
+          cfc.name, cf.currency
+      ORDER BY
+          total DESC;
+    """;
+    final List<Map<String, Object?>> categoryIncomeRawData = await db.rawQuery(categoryIncomeQuery);
+
+    final Map<String, double> categoryIncomeAggregates = <String, double>{};
+    for (final Map<String, Object?> row in categoryIncomeRawData) {
+      final String name = row["name"] as String;
+      final int currencyId = row["currency"] as int;
+      final double total = (row["total"] as num).toDouble();
+
+      final double rate = await _getRate(currencyId, mainCurrency);
+      categoryIncomeAggregates.update(name, (double value) => value + total * rate, ifAbsent: () => total * rate);
+    }
+    final List<CategoryExpense> processedIncomeData = categoryIncomeAggregates.entries
+        .map((MapEntry<String, double> entry) => CategoryExpense(entry.key, entry.value))
+        .toList();
+    categoryIncomeSnapshot.replace(processedIncomeData);
+
     // Balance Over Time
     final String balanceQuery = """
       SELECT
@@ -246,6 +298,7 @@ class _StatisticsState extends State<Statistics> {
       }
     }
     balanceOverTimeSnapshot.replace(processedCandlestickData);
+    });
   }
 
   String _getDateFilter(DateTimeRange? range) {
@@ -254,13 +307,6 @@ class _StatisticsState extends State<Statistics> {
     final DateTime endLimit = range.end.add(const Duration(days: 1));
     final String endStr = endLimit.toIso8601String();
     return "date >= '$startStr' AND date < '$endStr'";
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAccounts();
-    fetchData();
   }
 
   void _loadAccounts() async {
@@ -272,6 +318,7 @@ class _StatisticsState extends State<Statistics> {
         ...res.map(Account.fromJson)
       ];
     });
+    _watchData();
   }
 
   @override
@@ -301,7 +348,7 @@ class _StatisticsState extends State<Statistics> {
                         setState(() {
                           accountId = val;
                         });
-                        fetchData();
+                        _watchData();
                       }
                     },
                   ),
@@ -312,11 +359,36 @@ class _StatisticsState extends State<Statistics> {
                     setState(() {
                       dateRange = range;
                     });
-                    fetchData();
+                    _watchData();
                   },
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            ListenableBuilder(
+              listenable: Listenable.merge(<Listenable>[monthlyCashFlowSnapshot, balanceOverTimeSnapshot]),
+              builder: (BuildContext context, Widget? _) {
+                double totalIncome = 0;
+                double totalExpense = 0;
+                for (final MonthlyCashFlow month in monthlyCashFlowSnapshot.data) {
+                  totalIncome += month.income;
+                  totalExpense += month.expense.abs();
+                }
+                double currentBalance = 0;
+                if (balanceOverTimeSnapshot.data.isNotEmpty) {
+                  currentBalance = balanceOverTimeSnapshot.data.last.close;
+                }
+                final NumberFormat format = NumberFormat.compactSimpleCurrency(locale: Constants.locale);
+                return Row(
+                  children: <Widget>[
+                    Expanded(child: _SummaryCard(title: "Income", amount: format.format(totalIncome), color: Colors.green)),
+                    Expanded(child: _SummaryCard(title: "Expense", amount: format.format(totalExpense), color: Colors.red)),
+                    Expanded(child: _SummaryCard(title: "Balance", amount: format.format(currentBalance), color: Colors.blue)),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -534,6 +606,83 @@ class _StatisticsState extends State<Statistics> {
                 ),
               ),
             ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: <Widget>[
+                    Text("Income by Category",
+                        style: Theme.of(context).textTheme.titleLarge),
+                    SizedBox(
+                      height: 300,
+                      child: ListenableBuilder(
+                        listenable: categoryIncomeSnapshot,
+                        builder: (BuildContext context, Widget? _) {
+                          if (categoryIncomeSnapshot.data.isEmpty) {
+                            return const Center(
+                                child: Text("No income data"));
+                          }
+                          final double total = categoryIncomeSnapshot.data
+                              .map((CategoryExpense e) => e.total)
+                              .reduce((double a, double b) => a + b);
+                          return PieChart(
+                            PieChartData(
+                              sections: categoryIncomeSnapshot.data
+                                  .asMap()
+                                  .entries
+                                  .map((MapEntry<int, CategoryExpense> e) {
+                                final double percentage =
+                                    (e.value.total / total * 100).abs();
+                                return PieChartSectionData(
+                                  value: e.value.total.abs(),
+                                  title: "",
+                                  color: colors[e.key % colors.length],
+                                  badgeWidget: _Badge(
+                                    "${e.value.name}\n${percentage.toStringAsFixed(2)}%",
+                                    size: 40,
+                                    borderColor: HSLColor.fromColor(
+                                            colors[e.key % colors.length])
+                                        .withLightness(0.3)
+                                        .toColor(),
+                                  ),
+                                  badgePositionPercentageOffset: .98,
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final String amount;
+  final Color color;
+
+  const _SummaryCard({required this.title, required this.amount, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: <Widget>[
+            Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey[700])),
+            const SizedBox(height: 8),
+            Text(amount, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

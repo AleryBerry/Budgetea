@@ -5,3 +5,8 @@ enum TransactionType {
   gasto,
   transferencia,
 }
+
+class PreferencesKeys {
+  static const String mainAccount = "main_account";
+  static const String mainCurrency = "main_currency";
+}

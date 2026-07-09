@@ -6,7 +6,6 @@ import "package:my_app/extension_methods/double.dart";
 import "package:my_app/l10n/app_localizations.dart";
 import "package:my_app/models/account.dart";
 import "package:my_app/screens/accounts/accounts.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 class AccountCreation extends StatefulWidget {
   const AccountCreation({this.parent, super.key});
